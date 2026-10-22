@@ -196,6 +196,7 @@ func (p *Processor) Resize(img *image.NRGBA) (image.Image, error) {
 		if p.resizeXY {
 			dx, dy = img.Bounds().Dy(), img.Bounds().Dx()
 			img = rotateImage90(img)
+			p.rotateMasks(rotateImage90)
 		}
 		if dx > p.NewHeight {
 			img, err = p.shrink(img)
@@ -204,6 +205,7 @@ func (p *Processor) Resize(img *image.NRGBA) (image.Image, error) {
 			}
 			if p.resizeXY {
 				img = rotateImage270(img)
+				p.rotateMasks(rotateImage270)
 			}
 			if p.NewWidth > 0 && p.NewWidth != dy {
 				if p.NewWidth <= dy {
@@ -226,6 +228,7 @@ func (p *Processor) Resize(img *image.NRGBA) (image.Image, error) {
 		} else {
 			if p.resizeXY {
 				img = rotateImage270(img)
+				p.rotateMasks(rotateImage270)
 			}
 		}
 		return img, nil
@@ -239,6 +242,7 @@ func (p *Processor) Resize(img *image.NRGBA) (image.Image, error) {
 		if p.resizeXY {
 			dx, dy = img.Bounds().Dy(), img.Bounds().Dx()
 			img = rotateImage90(img)
+			p.rotateMasks(rotateImage90)
 		}
 		if dx < p.NewHeight {
 			img, err = p.enlarge(img)
@@ -247,6 +251,7 @@ func (p *Processor) Resize(img *image.NRGBA) (image.Image, error) {
 			}
 			if p.resizeXY {
 				img = rotateImage270(img)
+				p.rotateMasks(rotateImage270)
 			}
 			if p.NewWidth > 0 && p.NewWidth != dy {
 				if p.NewWidth <= dy {
@@ -269,6 +274,7 @@ func (p *Processor) Resize(img *image.NRGBA) (image.Image, error) {
 		} else {
 			if p.resizeXY {
 				img = rotateImage270(img)
+				p.rotateMasks(rotateImage270)
 			}
 		}
 		return img, nil
@@ -372,13 +378,7 @@ func (p *Processor) Resize(img *image.NRGBA) (image.Image, error) {
 	if newHeight > 0 && p.NewHeight != c.Height {
 		if !p.resizeXY {
 			img = rotateImage90(img)
-
-			if p.Mask != nil {
-				p.Mask = rotateImage90(p.Mask)
-			}
-			if p.RMask != nil {
-				p.RMask = rotateImage90(p.RMask)
-			}
+			p.rotateMasks(rotateImage90)
 		}
 		if p.NewHeight > c.Height {
 			img, err = enlargeVertFn(img)
@@ -393,13 +393,7 @@ func (p *Processor) Resize(img *image.NRGBA) (image.Image, error) {
 		}
 		if !p.resizeXY {
 			img = rotateImage270(img)
-
-			if p.Mask != nil {
-				p.Mask = rotateImage270(p.Mask)
-			}
-			if p.RMask != nil {
-				p.RMask = rotateImage270(p.RMask)
-			}
+			p.rotateMasks(rotateImage270)
 		}
 	}
 
@@ -422,6 +416,16 @@ func (p *Processor) notifyPreview(w worker) {
 		case <-p.errs:
 		}
 	}()
+}
+
+// rotateMasks rotates the protective and the removal mask together with the image.
+func (p *Processor) rotateMasks(rotate func(*image.NRGBA) *image.NRGBA) {
+	if p.Mask != nil {
+		p.Mask = rotate(p.Mask)
+	}
+	if p.RMask != nil {
+		p.RMask = rotate(p.RMask)
+	}
 }
 
 // calculateFitness iteratively try to find the best image aspect ratio for the rescale.
