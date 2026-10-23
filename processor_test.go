@@ -322,3 +322,26 @@ func TestResize_MasksShouldFollowTheImageOnEveryResizePath(t *testing.T) {
 		})
 	}
 }
+
+func TestResize_ReusedProcessorShouldKeepTheMask(t *testing.T) {
+	mask := image.NewNRGBA(image.Rect(0, 0, 60, 40))
+	draw.Draw(mask, image.Rect(20, 10, 40, 30), image.White, image.Point{}, draw.Src)
+
+	proc := &Processor{
+		NewWidth:       50,
+		BlurRadius:     1,
+		SobelThreshold: 4,
+		MaskPath:       "mask.png",
+		Mask:           mask,
+	}
+
+	// Each run carves the mask together with the image. The second run
+	// used to read a mask of the first run's output size.
+	for i := 0; i < 2; i++ {
+		img := image.NewNRGBA(image.Rect(0, 0, 60, 40))
+		res, err := proc.Resize(img)
+		assert.NoError(t, err)
+		assert.Equal(t, image.Pt(50, 40), res.Bounds().Size())
+		assert.Same(t, mask, proc.Mask)
+	}
+}
